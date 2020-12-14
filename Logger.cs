@@ -6,23 +6,27 @@ namespace ControllProgram
 {
     class Logger
     {
+        //Logger levels, FATAL will stop the program
         public enum Level
         {
             DEBUG,
             INFO,
             WARNING,
-            ERROR
+            ERROR,
+            FATAL
         }
 
 
         private string system;
         public Level minLogLevel;
 
+        //System is the subsystem name, minloglevel is the lowest level it will broadcast.
         public Logger(string system, Level minLogLevel) 
         {
             this.system = system;
             this.minLogLevel = minLogLevel;
         }
+
 
         public void log(Level level, string message)
         {
@@ -41,6 +45,9 @@ namespace ControllProgram
                 case Level.WARNING:
                     color = ConsoleColor.Magenta;
                     break;
+                case Level.FATAL:
+                    color = ConsoleColor.DarkBlue;
+                    break;
             }
             if (level >= minLogLevel)
             {
@@ -49,6 +56,10 @@ namespace ControllProgram
                 Console.Write(level.ToString("g"));
                 Console.ForegroundColor = ConsoleColor.Gray;
                 Console.WriteLine("][" + system + "]:: " + message);
+                if(level == Level.FATAL)
+                {
+                    Environment.Exit(1);
+                }
             }
         }
     }
