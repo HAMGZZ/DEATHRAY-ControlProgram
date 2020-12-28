@@ -56,11 +56,17 @@ namespace ControllProgram
             this.term = term;
             logger.log(Logger.Level.INFO, "Loading all planet data...");
             string topPath = "./Horizons/data/";
-            totalCount = Directory.GetFiles(topPath, "*.csv", SearchOption.AllDirectories).Length;
-            Thread barGraphThread = new Thread(barGraphWork);
-            barGraphThread.Start();
-            processDir(topPath);
-            barGraphThread.Join();
+            if(term != null)
+            {
+                totalCount = Directory.GetFiles(topPath, "*.csv", SearchOption.AllDirectories).Length;
+                Thread barGraphThread = new Thread(barGraphWork);
+                barGraphThread.Start();
+                barGraphThread.Join();
+            }
+            else
+            {
+                processDir(topPath);
+            }
         }
 
         public int search(string name)

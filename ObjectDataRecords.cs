@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using CsvHelper;
@@ -86,16 +87,34 @@ namespace ControllProgram
         public decimal AD { get => aD; set { } }
         public decimal PR { get => pR; set { } }
 
-        public double Distance;
-        public double Ra;
-        public double Dec;
-        public double Az;
-        public double El;
-        public double HourAngle;
-        public double LST;
-        public double CartX;
-        public double CartY;
-        public double CartZ;
+        public double Distance { get; set; }
+        public double Ra { get; set; }
+        public double Dec { get; set; }
+        public double Az { get; set; }
+        public double El { get; set; }
+        public double HourAngle { get; set; }
+        public double LST { get; set; }
+        public double CartX { get; set; }
+        public double CartY { get; set; }
+        public double CartZ { get; set; }
+
+        private PropertyInfo[] _PropertyInfos = null;
+
+        public override string ToString()
+        {
+            if (_PropertyInfos == null)
+                _PropertyInfos = this.GetType().GetProperties();
+
+            var sb = new StringBuilder();
+
+            foreach (var info in _PropertyInfos)
+            {
+                var value = info.GetValue(this, null) ?? "(null)";
+                sb.AppendLine(info.Name + ": " + value.ToString());
+            }
+
+            return sb.ToString();
+        }
 
     }
 }
