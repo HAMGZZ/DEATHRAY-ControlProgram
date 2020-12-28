@@ -200,10 +200,10 @@ namespace ControllProgram
             }
             if (remote.data.connect)
             {
-                //w_data.text(remote.data.rxCurrentAzEl.Az.ToString(), 15, 0);
-                //w_data.text(remote.data.rxCurrentAzEl.El.ToString(), 15, 0);
-                //w_data.text(remote.data.rxDesiredAzEl.Az.ToString(), 15, 0);
-                //w_data.text(remote.data.rxDesiredAzEl.El.ToString(), 15, 0);
+                w_data.text(remote.data.rxCurrentAzEl.Az.ToString(), 15, 0);
+                w_data.text(remote.data.rxCurrentAzEl.El.ToString(), 15, 0);
+                w_data.text(remote.data.rxDesiredAzEl.Az.ToString(), 15, 0);
+                w_data.text(remote.data.rxDesiredAzEl.El.ToString(), 15, 0);
                 w_data.text(remote.data.moving.ToString(), 15, 0);
                 w_data.text(remote.data.volts.ToString(), 15, 0);
             }

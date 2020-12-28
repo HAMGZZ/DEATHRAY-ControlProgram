@@ -10,13 +10,17 @@ namespace ControllProgram
     {
         private Logger logger;
         private Comms comms;
-
+        public struct AzEl
+        {
+            public double Az;
+            public double El;
+        }
 
         public struct remoteData
         {
-            //public AzEl rxCurrentAzEl;
-            //public AzEl rxDesiredAzEl;
-            //public AzEl txAzEl;
+            public AzEl rxCurrentAzEl;
+            public AzEl rxDesiredAzEl;
+            public AzEl txAzEl;
             public bool moving;
             public double volts;
             public bool lights;
@@ -26,11 +30,12 @@ namespace ControllProgram
         public remoteData data;
         public Remote()
         {
-            //comms = new Comms("REMOTE", 115200);
+            comms = new Comms("REMOTE", 115200);
             logger = new Logger("REMOTE", Logger.Level.INFO);
             logger.log(Logger.Level.INFO, "Setting up remote comms.");
-            //hread remoteLoop = new Thread(remoteCommsLoop);
-            //remoteLoop.Start();
+            Thread remoteLoop = new Thread(remoteCommsLoop);
+            Thread.Sleep(1000);
+            remoteLoop.Start();
             logger.log(Logger.Level.INFO, "Started data loop");
         }
 
@@ -38,16 +43,16 @@ namespace ControllProgram
         {
             while(true)
             {
-                comms.Send("autoupdate ");//+ data.txAzEl.Az + " " + data.txAzEl.El);
+                comms.Send("autoupdate " + data.txAzEl.Az + " " + data.txAzEl.El +"\r");
                 Thread.Sleep(100);
                 if(comms.DataAvailable() > 0)
                 {
                     data.connect = true;
                     var incoming = comms.ReadLine().Split(' ');
-                    //data.rxCurrentAzEl.Az = Convert.ToDouble(incoming[0]);
-                    //data.rxCurrentAzEl.El = Convert.ToDouble(incoming[1]);
-                    //data.rxDesiredAzEl.Az = Convert.ToDouble(incoming[2]);
-                    //data.rxDesiredAzEl.El = Convert.ToDouble(incoming[3]);
+                    data.rxCurrentAzEl.Az = Convert.ToDouble(incoming[0]);
+                    data.rxCurrentAzEl.El = Convert.ToDouble(incoming[1]);
+                    data.rxDesiredAzEl.Az = Convert.ToDouble(incoming[2]);
+                    data.rxDesiredAzEl.El = Convert.ToDouble(incoming[3]);
                     data.moving = Convert.ToBoolean(incoming[4]);
                     data.volts = Convert.ToDouble(incoming[5]);
                 }
@@ -57,7 +62,7 @@ namespace ControllProgram
                     logger.log(Logger.Level.ERROR, "Did not receive data from remote box!");
                     Thread.Sleep(5000);
                 }
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
             }
         }
     }
