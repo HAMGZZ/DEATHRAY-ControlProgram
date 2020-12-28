@@ -85,10 +85,11 @@ namespace ControllProgram
             this.systemObject.Dec = raDec.Dec;
 
 
-            var A = Math.Atan2(Math.Sin(hourAngle * rads), Math.Cos(hourAngle * rads) * Math.Sin(latitude * rads) - Math.Tan(raDec.Dec * rads) * Math.Cos(latitude * rads)) * degs;
+            var A = (Math.Atan2(Math.Sin(hourAngle * rads), Math.Cos(hourAngle * rads) * Math.Sin(latitude * rads) - Math.Tan(raDec.Dec * rads) * Math.Cos(latitude * rads)) * degs) + 180;
             var h = Math.Asin(Math.Sin(latitude * rads) * Math.Sin(raDec.Dec * rads) + Math.Cos(latitude * rads) * Math.Cos(raDec.Dec * rads) * Math.Cos(hourAngle * rads)) * degs;
+            var happ = h + (0.017) / (Math.Tan((h + (10.26 / (h + 5.10))) * rads));
             this.systemObject.Az = A;
-            this.systemObject.El = h;
+            this.systemObject.El = happ;
         }
 
         private double HourAngle(double st, RaDec raDec)
@@ -117,8 +118,8 @@ namespace ControllProgram
             var beta = Math.Asin(((geo[2]) / (delta)) * rads);
             var epsilon = 23.4397;
             var dec = Math.Asin((Math.Sin(beta) * Math.Cos(epsilon * rads)) + (Math.Cos(beta) * Math.Sin(epsilon * rads) * Math.Sin(lambda))) * degs;
-            var ra = Math.Atan2(Math.Sin(lambda) * Math.Cos(epsilon * rads) - Math.Tan(beta) * Math.Sin(epsilon * rads), Math.Cos(lambda)) * degs;
-            logger.log(Logger.Level.DEBUG, "Found RA & DEC: " +ra + "  " + dec);
+            var ra = Math.Atan2((Math.Sin(lambda) * Math.Cos(epsilon * rads)) - (Math.Tan(beta) * Math.Sin(epsilon * rads)), Math.Cos(lambda)) * degs;
+            logger.log(Logger.Level.DEBUG, "Found RA & DEC: " + ra + "  " + dec);
             var temp = new RaDec { Ra = ra, Dec = dec };
             return temp;
         }
@@ -137,30 +138,6 @@ namespace ControllProgram
             //Calculate radius vector
             var radius = elements.a * ((1 - Math.Pow(elements.e, 2)) / (1 + elements.e * Math.Cos(elements.nu * rads)));
 
-            /* Obtain the position and velocity vector o(t) = o and o˙(t) = vo, respectively, in the orbital frame (z-axis perpendicular to
-              * orbital plane, x-axis pointing to periapsis of the orbit):
-              * */
-            /*
-            var ox = radius * (Math.Cos(elements.nu * rads));
-            var oy = radius * (Math.Sin(elements.nu * rads));
-            var oz = 0;
-            var vox = (Math.Sqrt(elements.nu * elements.a) / radius) * (-Math.Sin(E * rads));
-            var voy = (Math.Sqrt(elements.nu * elements.a) / radius) * (Math.Sqrt(1 - Math.Pow(elements.e, 2)) * Math.Cos(E * rads));
-            var voz = 0;
-            */
-            /*Transform o(t) and o˙(t) to the inertial frame3
-                in bodycentric (in case of the Sun as central body: heliocentric)
-                rectangular coordinates r(t) and r˙(t) with the rotation matrices Rx(φ) and Rz(φ) using the transformation
-                sequence
-              */
-            /*
-            var rx = (ox * (Math.Cos(elements.w * rads) * Math.Cos(elements.omega * rads) - Math.Sin(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads))) - (oy * (Math.Sin(elements.w * rads) * Math.Cos(elements.omega * rads) + Math.Cos(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads)));
-            var ry = (ox * (Math.Cos(elements.w * rads) * Math.Cos(elements.omega * rads) + Math.Sin(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads))) + (oy * (Math.Cos(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads) - Math.Sin(elements.w * rads) * Math.Sin(elements.omega * rads)));
-            var rz = (ox*(Math.Sin(elements.w * rads) * Math.Sin(elements.i * rads))) + (oy * (Math.Cos(elements.w * rads) * Math.Sin(elements.i * rads)));
-            var vrx = (vox * (Math.Cos(elements.w * rads) * Math.Cos(elements.omega * rads) - Math.Sin(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads))) - (voy * (Math.Sin(elements.w * rads) * Math.Cos(elements.omega * rads) + Math.Cos(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads)));
-            var vry = (vox * (Math.Cos(elements.w * rads) * Math.Cos(elements.omega * rads) + Math.Sin(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads))) + (voy * (Math.Cos(elements.w * rads) * Math.Cos(elements.i * rads) * Math.Sin(elements.omega * rads) - Math.Sin(elements.w * rads) * Math.Sin(elements.omega * rads)));
-            var vrz = (vox * (Math.Sin(elements.w * rads) * Math.Sin(elements.i * rads))) + (voy * (Math.Cos(elements.w * rads) * Math.Sin(elements.i * rads)));
-            */
 
             var x = radius * (Math.Cos(elements.omega * rads) * Math.Cos((elements.w + elements.nu) * rads) - Math.Sin(elements.omega * rads) * Math.Cos(elements.i * rads) * Math.Sin((elements.w + elements.nu) * rads));
             var y = radius * (Math.Sin(elements.omega * rads) * Math.Cos((elements.w + elements.nu) * rads) + Math.Cos(elements.omega * rads) * Math.Cos(elements.i * rads) * Math.Sin((elements.w + elements.nu) * rads));
