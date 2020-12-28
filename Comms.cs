@@ -52,7 +52,15 @@ namespace ControllProgram
 
         public int DataAvailable()
         {
-           return _SerialPort.BytesToRead;
+            try
+            {
+                return _SerialPort.BytesToRead;
+            }
+            catch (Exception)
+            {
+
+                return 0;
+            }
         }
 
         //send data to port in form of string;
