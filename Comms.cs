@@ -4,7 +4,7 @@ using System.IO.Ports;
 using System.Text;
 using System.Threading;
 
-namespace ControllProgram
+namespace ControlProgram
 {
     class Comms
     {
@@ -132,6 +132,21 @@ namespace ControllProgram
             }
             else
                 return "";
+        }
+
+        public string ReadExisting()
+        {
+            try
+            {
+
+                logger.log(Logger.Level.DEBUG, "Reading existing...");
+                return _SerialPort.ReadExisting();
+            }
+            catch (Exception ex)
+            {
+                logger.log(Logger.Level.WARNING, "ReadExisting failed, exception : " + ex.ToString());
+                return "";
+            }
         }
 
         public string ReadUntil(string charecter)

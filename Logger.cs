@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ControllProgram
+namespace ControlProgram
 {
     class Logger
     {

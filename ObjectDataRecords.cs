@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.Configuration.Attributes;
 
-namespace ControllProgram
+namespace ControlProgram
 {
     public class ObjectDataRecords
     {

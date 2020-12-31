@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Text;
-using static ControllProgram.OrbitCalculator;
+using static ControlProgram.OrbitCalculator;
 
-namespace ControllProgram
+namespace ControlProgram
 {
     class Term
     {

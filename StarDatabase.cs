@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace ControllProgram
+namespace ControlProgram
 {
     class objectDataRecordsMap : ClassMap<ObjectDataRecords>
     {
