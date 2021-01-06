@@ -51,7 +51,7 @@ namespace ControlProgram
 
         public void text(string data, byte localx, byte localy, bool clear = false)
         {
-            Thread.Sleep(15);
+            Thread.Sleep(25);
             logger.log(Logger.Level.DEBUG, "Adding text to \"" + windowName + "\" at : " + localx + " " + localy);
             term.SetCursorAddress(new Term.CursorAddress { x = (byte)(localx + this.x + 1), y = (byte)(localy + this.y + 1) });
             if(clear)

@@ -30,7 +30,7 @@ namespace ControlProgram
         public remoteData data;
         public Remote()
         {
-            comms = new Comms("REMOTE", 115200);
+            //comms = new Comms("REMOTE", 115200);
             logger = new Logger("REMOTE", Logger.Level.INFO);
             logger.log(Logger.Level.INFO, "Setting up remote comms.");
             Thread remoteLoop = new Thread(remoteCommsLoop);
@@ -42,8 +42,7 @@ namespace ControlProgram
         {
             while(true)
             {
-                comms.ClearBuffer();
-                comms.Send("autoupdate " + data.txAzEl.Az + " " + data.txAzEl.El +"\n\r");
+                /*comms.Send("autoupdate " + data.txAzEl.Az + " " + data.txAzEl.El +"\n\r");
                 Thread.Sleep(50);
                 if(comms.DataAvailable() > 0)
                 {
@@ -64,7 +63,9 @@ namespace ControlProgram
                     data.connect = false;
                     logger.log(Logger.Level.ERROR, "Did not receive data from remote box!");
                     Thread.Sleep(5000);
-                }
+                }*/
+
+                Thread.Sleep(100);
             }
         }
     }

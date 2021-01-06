@@ -29,8 +29,9 @@ namespace ControlProgram
 
             var database = new StarDatabase();
 
-
             Remote remote = new Remote();
+
+
             Term vt4100 = new Term(database, remote);
 
 
@@ -43,10 +44,17 @@ namespace ControlProgram
             vt4100.draw();
 
             Thread.Sleep(100);
+            var count = 0;
             while (true)
             {
                 vt4100.update();
-                Thread.Sleep(75);
+                count++;
+                if(count == 100)
+                {
+                    vt4100.updateVision();
+                    count = 0;
+                }
+                Thread.Sleep(65);
             }
             
         }
