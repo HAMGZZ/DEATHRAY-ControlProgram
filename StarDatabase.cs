@@ -61,6 +61,7 @@ namespace ControlProgram
                 totalCount = Directory.GetFiles(topPath, "*.csv", SearchOption.AllDirectories).Length;
                 Thread barGraphThread = new Thread(barGraphWork);
                 barGraphThread.Start();
+                processDir(topPath);
                 barGraphThread.Join();
             }
             else
@@ -72,7 +73,7 @@ namespace ControlProgram
         public int search(string name)
         {
             logger.log(Logger.Level.INFO, "Searching for " + name);
-            int loc = data.FindIndex(x => (x.Name.ToUpper() == name.ToUpper() && x.Date >= DateTime.UtcNow));
+            int loc = data.FindIndex(x => (x.Name.ToUpper() == name.ToUpper() && x.Date >= DateTime.UtcNow.Subtract(TimeSpan.FromHours(100))));
             if(loc < 0)
                 logger.log(Logger.Level.INFO, "Could not find " + name);
             else
@@ -109,7 +110,7 @@ namespace ControlProgram
 
         private void processFile(string filePath)
         {
-            DateTime todayDate = DateTime.UtcNow.Subtract(TimeSpan.FromHours(12));
+            DateTime todayDate = DateTime.UtcNow.Subtract(TimeSpan.FromHours(100));
             DateTime futureDate = DateTime.UtcNow.AddDays(5);
             using (var reader = new StreamReader(filePath))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
@@ -123,11 +124,14 @@ namespace ControlProgram
                     foreach (var row in record)
                     {
                         if (row.Date >= todayDate && row.Date <= futureDate)
+                        {
                             data.Add(row);
+                            logger.log(Logger.Level.DEBUG, "Stored " + record);
+                        }
                         else
                             logger.log(Logger.Level.DEBUG, "Too far in advance to load...");
                     }
-                    logger.log(Logger.Level.DEBUG, "Stored " + record);
+                    
                 }
                 catch (Exception ex)
                 {
