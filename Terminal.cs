@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Text;
-using static ControlProgram.OrbitCalculator;
 
 namespace ControlProgram
 {
@@ -19,7 +17,7 @@ namespace ControlProgram
         //WINDOWS
         private Window w_data;
         private Window w_objectData;
-        private Window w_logger;
+        private Window w_vision;
         private Window w_prompt;
 
         private List<char> toPrintBuffer = new List<char>();
@@ -35,13 +33,13 @@ namespace ControlProgram
             VT4100.Send(clear);
             VT4100.Send("CZGZZ DEATHCOM - LEWIS HAMILTON 2020 - https://czgzz.space");
             Thread.Sleep(1000);
-            VT4100.SerialIn += delegate (object sender, EventArgs e) { Terminal_SerialIn(VT4100, inputBuffer); };
             logger.log(Logger.Level.DEBUG, "Input event created");
             Thread.Sleep(100);
             VT4100.ClearBuffer();
             loadingScreen();
             database.load(this);
-            calc = new OrbitCalculator(database.data[database.search("EARTH")], 151, -33);
+            var earthLoc = database.search("EARTH");
+            calc = new OrbitCalculator(database.data[earthLoc], 151, -33);
         }
 
         public struct CursorAddress
@@ -154,7 +152,7 @@ namespace ControlProgram
             VT4100.Send(clear);
             w_data = new Window(0, 1, 10, 30, "Data", this);
             w_objectData = new Window(w_data.Left, 1, w_data.Height, 80 - w_data.Width + 1, "Object Data", this);
-            w_logger = new Window(0, w_data.Bottom, 11, 80, "Logger", this);
+            w_vision = new Window(0, w_data.Bottom, 11, 80, "Vision", this);
             w_prompt = new Window(0, 20, 3, 80, "Prompt", this);
             w_data.text("Current AZ:", 0, 0);
             w_data.text("Current EL:", 0, 1);
@@ -171,6 +169,11 @@ namespace ControlProgram
             w_objectData.text("EL: ", 0, 5);
             w_objectData.text("LST: ", 35, 0);
             w_objectData.text("HA: ", 35, 1);
+            w_vision.text("N", 0, 8);
+            w_vision.text("E", 19, 8);
+            w_vision.text("S", 39, 8);
+            w_vision.text("W", 58, 8);
+            w_vision.text("N", 77, 8);
             w_prompt.text("Command >> ", 0, 0);
             SetCursorAddress(new CursorAddress { x = 12, y = 21 });
             logger.log(Logger.Level.INFO, "Drawing screen done");
@@ -217,6 +220,30 @@ namespace ControlProgram
             Terminal_SerialIn(VT4100, inputBuffer);
         }
         
+        //Vision for major planets
+        public void updateVision()
+        {
+            string[] planets = { "mercury", "venus", "mars", "jupiter", "saturn", "uranus", "neptune" };
+            ObjectDataRecords[] planetData = new ObjectDataRecords[7];
+            for (int i = 0; i < planets.Length - 1; i++)
+            {
+                var loc = database.search(planets[i].ToUpper());
+                planetData[i] = database.data[loc];
+                calc.DirectionFinder(planetData[i]);
+            }
+
+            for (int i = 0; i < planets.Length - 1; i++)
+            {
+                if(planetData[i].El > 0)
+                {
+                    var x = ExtensionMethods.Map(planetData[i].Az, 0, 360, 0, 77);
+                    var y = ExtensionMethods.Map(planetData[i].El, 0, 90, 0, 7);
+                    w_vision.text((i + 1).ToString(), (byte)x, (byte)(7 - y));
+                }
+            }
+
+        }
+
         private bool acceptableChar(char a)
         {
             switch (a)
@@ -244,36 +271,40 @@ namespace ControlProgram
             if (VT4100.DataAvailable() > 0)
             {
                 var inChar = comms.ReadChar();
-                if (acceptableChar(inChar)) 
-                {
-                    switch (inChar)
+                //foreach (var inChar in inString)
+                //{
+                    if (acceptableChar(inChar))
                     {
-                        case '\b':
-                            if (buffer.Count > 0)
-                            {
-                                buffer.RemoveAt(buffer.Count - 1);
-                            }
-                            break;
+                        switch (inChar)
+                        {
+                            case '\b':
+                                if (buffer.Count > 0)
+                                {
+                                    buffer.RemoveAt(buffer.Count - 1);
+                                }
+                                break;
 
-                        case '\r':
-                            string str = new string(buffer.ToArray());
-                            command(str.ToUpper());
-                            SetCursorAddress(new CursorAddress { x = 12, y = 21 });
-                            for (int i = 0; i < str.Length; i++)
-                            {
-                                if(echoTypedEnable) 
-                                    VT4100.Send(" ");
-                            }
-                            SetCursorAddress(new CursorAddress { x = 12, y = 21 });
-                            buffer.Clear();
-                            break;
+                            case '\r':
+                                string str = new string(buffer.ToArray());
+                                command(str.ToUpper());
+                                SetCursorAddress(new CursorAddress { x = 12, y = 21 });
+                                for (int i = 0; i < str.Length; i++)
+                                {
+                                    if (echoTypedEnable)
+                                        VT4100.Send(" ");
+                                }
+                                SetCursorAddress(new CursorAddress { x = 12, y = 21 });
+                                buffer.Clear();
+                                break;
 
-                        default:
-                            buffer.Add(inChar);
-                            break;
+                            default:
+                                buffer.Add(inChar);
+                                break;
+                        }
+
                     }
-                    
-                }
+                //}
+               
             }
         }
 
@@ -283,32 +314,19 @@ namespace ControlProgram
             var tokens = command.Split(' ');
             switch (tokens[0])
             {
-                case "HELP":
-                    w_logger.text("Goto {az} {el}", 0, 0, true);
-                    w_logger.text("Follow {object}", 0, 1, true);
-                    break;
-
-                case "GOTO":
-                    w_logger.text("Goint to x", 0, 0);
-                    break;
-
                 case "FOLLOW":
                     if(tokens.Length > 1)
                     {
                         var loc = database.search(tokens[1]);
                         if (loc < 0)
                         {
-                            w_logger.text("Could not find " + tokens[1], 0, 0, true);
+                            w_vision.text("Could not find " + tokens[1], 0, 0, true);
                         }
                         else
                         {
                             currentObject = database.data[loc];
                             calc.DirectionFinder(currentObject);
                         }
-                    }
-                    else
-                    {
-                        w_logger.text("Incorect use of command \"FOLLOW\", Correct syntax: \"FOLLOW {object}\"", 0, 0, true);
                     }
 
                     break;
@@ -319,6 +337,10 @@ namespace ControlProgram
                     draw();
                     break;
 
+                case "STOP":
+                    currentObject = null;
+                    break;
+
                 default:
                     
                     break;
@@ -327,5 +349,15 @@ namespace ControlProgram
 
 
         
+
+
+    }
+
+    public static class ExtensionMethods
+    {
+        public static double Map(this double value, double fromSource, double toSource, double fromTarget, double toTarget)
+        {
+            return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
+        }
     }
 }
