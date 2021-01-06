@@ -1,3 +1,4 @@
+**PROGRAM NOT RELEASED YET**
 # Control Program
 Control program is made to control an antenna rotator based on the EASYCOMIII protocol. Control Program only looks at celestrial objects.
 
