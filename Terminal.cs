@@ -22,8 +22,6 @@ namespace ControlProgram
 
         private List<char> toPrintBuffer = new List<char>();
 
-        private OrbitCalculator calc;
-
         public Term(StarDatabase database, Remote remote)
         {
             VT4100 = new Comms("VT4100", 19200, System.IO.Ports.Parity.Even, 7);
@@ -39,7 +37,6 @@ namespace ControlProgram
             loadingScreen();
             database.load(this);
             var earthLoc = database.search("EARTH");
-            calc = new OrbitCalculator(database.data[earthLoc], 151, -33);
         }
 
         public struct CursorAddress
@@ -182,9 +179,9 @@ namespace ControlProgram
         }
 
         public void update()
-        { 
+        {
             if (currentObject != null)
-                calc.DirectionFinder(currentObject);
+                currentObject.Calculations = OrbitCalculator.DirectionFinder(currentObject, earth, 151, -33);
             echoTypedEnable = false;
             logger.log(Logger.Level.DEBUG, "Updating screen");
             SetCursorAddress(new CursorAddress { x = 0, y = 0 });
@@ -193,13 +190,13 @@ namespace ControlProgram
             if (currentObject != null)
             {
                 w_objectData.text(currentObject.Name.PadRight(20, ' '), 11, 0);
-                w_objectData.text(currentObject.Distance.ToString().PadRight(20, ' '), 11, 1);
-                w_objectData.text((currentObject.Ra.ToString("0.##") + "/" + currentObject.Dec.ToString("0.##")).PadRight(20, ' '), 11, 2);
-                w_objectData.text((currentObject.CartX.ToString("0.##") + ", " + currentObject.CartY.ToString("0.##") + ", " + currentObject.CartZ.ToString("0.##")).PadRight(20, ' '), 11, 3);
-                w_objectData.text((currentObject.Az.ToString("0.##").PadRight(20, ' ')), 11, 4);
-                w_objectData.text((currentObject.El.ToString("0.##").PadRight(20, ' ')), 11, 5);
-                w_objectData.text(currentObject.LST.ToString("0.##").PadRight(8, ' '), 40, 0);
-                w_objectData.text(currentObject.HourAngle.ToString("0.##").PadRight(8, ' '), 40, 1);
+                w_objectData.text(currentObject.Calculations.Distance.ToString().PadRight(20, ' '), 11, 1);
+                w_objectData.text((currentObject.Calculations.Ra.ToString("0.##") + "/" + currentObject.Calculations.Dec.ToString("0.##")).PadRight(20, ' '), 11, 2);
+                w_objectData.text((currentObject.Calculations.CartX.ToString("0.##") + ", " + currentObject.Calculations.CartY.ToString("0.##") + ", " + currentObject.Calculations.CartZ.ToString("0.##")).PadRight(20, ' '), 11, 3);
+                w_objectData.text((currentObject.Calculations.Az.ToString("0.##").PadRight(20, ' ')), 11, 4);
+                w_objectData.text((currentObject.Calculations.El.ToString("0.##").PadRight(20, ' ')), 11, 5);
+                w_objectData.text(currentObject.Calculations.LST.ToString("0.##").PadRight(8, ' '), 40, 0);
+                w_objectData.text(currentObject.Calculations.HourAngle.ToString("0.##").PadRight(8, ' '), 40, 1);
             }
             if (remote.data.connect)
             {
@@ -229,15 +226,15 @@ namespace ControlProgram
             {
                 var loc = database.search(planets[i].ToUpper());
                 planetData[i] = database.data[loc];
-                calc.DirectionFinder(planetData[i]);
+                planetData[i].Calculations = OrbitCalculator.DirectionFinder(planetData[i], earth, 151, -33);
             }
 
             for (int i = 0; i < planets.Length - 1; i++)
             {
-                if(planetData[i].El > 0)
+                if(planetData[i].Calculations.El > 0)
                 {
-                    var x = ExtensionMethods.Map(planetData[i].Az, 0, 360, 0, 77);
-                    var y = ExtensionMethods.Map(planetData[i].El, 0, 90, 0, 7);
+                    var x = ExtensionMethods.Map(planetData[i].Calculations.Az, 0, 360, 0, 77);
+                    var y = ExtensionMethods.Map(planetData[i].Calculations.El, 0, 90, 0, 7);
                     w_vision.text((i + 1).ToString(), (byte)x, (byte)(7 - y));
                 }
             }
@@ -325,7 +322,7 @@ namespace ControlProgram
                         else
                         {
                             currentObject = database.data[loc];
-                            calc.DirectionFinder(currentObject);
+                            currentObject.Calculations = OrbitCalculator.DirectionFinder(currentObject, earth, 151, -33);
                         }
                     }
 
