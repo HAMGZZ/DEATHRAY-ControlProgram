@@ -102,7 +102,7 @@ namespace ControlProgram
         public decimal AD { get => aD; set { } }
         public decimal PR { get => pR; set { } }
 
-        public ObjectDataCalculations calculations;
+        public ObjectDataCalculations Calculations;
 
 
 
