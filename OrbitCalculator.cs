@@ -1,46 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using static System.Math;
 
 namespace ControlProgram
 {
-   public class OrbitCalculator
+    public static class OrbitCalculator
     {
-
-
-        public struct AzEl
-        {
-            public double az;
-            public double el;
-        };
-
-        public struct cartesianCoords
+        public struct vector3D
         {
             public double x;
             public double y;
             public double z;
         };
-        
+
         public struct RaDec
         {
             public double Ra;
             public double Dec;
+            public double Distance;
         };
+
         public struct kaplarianElements
         {
-            public kaplarianElements(double a, double nu, double omega, double q, double w, double i, double e, double m)
+            public kaplarianElements(ObjectDataRecords obj)
             {
-                this.a = a;
-                this.nu = nu;
-                this.omega = omega;
-                this.q = q;
-                this.w = w;
-                this.i = i;
-                this.e = e;
-                this.m = m;
+                this.a = (double)obj.A;
+                this.nu = (double)obj.Nu * rads;
+                this.omega = (double)obj.Omega * rads;
+                this.q = (double)obj.Q * rads;
+                this.w = (double)obj.W * rads;
+                this.i = (double)obj.I * rads;
+                this.e = (double)obj.E;
+                this.m = (double)obj.M * rads;
             }
+
             public double a; // Semi Major Axis (m)
             public double nu; // True anomaly
             public double omega; // Longitude of Ascending Node
@@ -48,109 +41,82 @@ namespace ControlProgram
             public double w; //Argument of Perifocus, w (degrees)
             public double i; //Inclanation
             public double e; //Ecentricity
-            public double m;
+            public double m; // Mean Anomaly
         };
 
+        private static Logger logger = new Logger("CALCULATOR", Logger.Level.DEBUG);
+        private const double rads = PI / 180;
+        private const double degs = 180 / PI;
 
-        private Logger logger;
-        private double rads = (4 * Math.Atan(1) / 180);
-        private double degs = 180 / Math.PI;
-        private ObjectDataRecords systemObject, earth;
-        private double longitude, latitude;
-
-        public OrbitCalculator(ObjectDataRecords earth, double longitude, double latitude)
+        public static ObjectDataCalculations DirectionFinder(ObjectDataRecords systemObject, ObjectDataRecords earth, double longitude, double latitude)
         {
-            logger = new Logger("CALCULATOR", Logger.Level.DEBUG);
-            this.earth = earth;
-            this.longitude = longitude;
-            this.latitude = latitude;
-        }
-
-        public void DirectionFinder(ObjectDataRecords systemObject)
-        {
-            this.systemObject = systemObject;
-            var ObjectElements = new kaplarianElements((double)systemObject.A, (double)systemObject.Nu, (double)systemObject.Omega, (double)systemObject.Q, (double)systemObject.W, (double)systemObject.I, (double)systemObject.E, (double)systemObject.M);
-            var EarthElements = new kaplarianElements((double)earth.A, (double)earth.Nu, (double)earth.Omega, (double)earth.Q, (double)earth.W, (double)earth.I, (double)earth.E, (double)earth.M);
-            var objectCart = cartPlaneCalc(ObjectElements);
-            var earthCart = cartPlaneCalc(EarthElements);
-            systemObject.CartX = objectCart.x;
-            systemObject.CartY = objectCart.y;
-            systemObject.CartZ = objectCart.z;
-            double[] geocentricEclip = { objectCart.x - earthCart.x, objectCart.y - earthCart.y, objectCart.z - earthCart.z };
+            longitude = longitude * rads;
+            latitude = latitude * rads;
+            var objectCart = cartPlaneCalc(new kaplarianElements(systemObject));
+            var earthCart = cartPlaneCalc(new kaplarianElements(earth));
+            systemObject.Calculations.CartX = objectCart.x;
+            systemObject.Calculations.CartY = objectCart.y;
+            systemObject.Calculations.CartZ = objectCart.z;
+            var geocentricEclip = new vector3D { x = objectCart.x - earthCart.x, y = objectCart.y - earthCart.y, z = objectCart.z - earthCart.z };
             var raDec = geo2RaDec(geocentricEclip);
-            var st = SiderealTime();
+            var st = SiderealTime(new kaplarianElements(earth), longitude);
             var hourAngle = HourAngle(st, raDec);
-            this.systemObject.LST = st;
-            this.systemObject.HourAngle = hourAngle;
-            this.systemObject.Ra = raDec.Ra;
-            this.systemObject.Dec = raDec.Dec;
 
+            var A = (Atan2(Sin(hourAngle), Cos(hourAngle) * Sin(latitude) - Tan(raDec.Dec) * Cos(latitude)) * degs) + 180;
+            var h = Asin(Sin(latitude) * Sin(raDec.Dec) + Cos(latitude) * Cos(raDec.Dec) * Cos(hourAngle)) * degs;
 
-            var A = (Math.Atan2(Math.Sin(hourAngle * rads), Math.Cos(hourAngle * rads) * Math.Sin(latitude * rads) - Math.Tan(raDec.Dec * rads) * Math.Cos(latitude * rads)) * degs) + 180;
-            var h = Math.Asin(Math.Sin(latitude * rads) * Math.Sin(raDec.Dec * rads) + Math.Cos(latitude * rads) * Math.Cos(raDec.Dec * rads) * Math.Cos(hourAngle * rads)) * degs;
-            var happ = h + (0.017) / (Math.Tan((h + (10.26 / (h + 5.10))) * rads));
-            this.systemObject.Az = A;
-            this.systemObject.El = happ;
+            return new ObjectDataCalculations { Az = A, El = h, Ra = raDec.Ra, Dec = raDec.Dec, HourAngle = hourAngle, LST = st, Distance = raDec.Distance };
         }
 
-        private double HourAngle(double st, RaDec raDec)
+        private static double HourAngle(double st, RaDec raDec)
         {
             var H = st - raDec.Ra;
-            return H;
+            return H * rads;
         }
 
-        private double SiderealTime()
+        private static double SiderealTime(kaplarianElements earth, double longitude)
         {
-            double II = (double)(earth.Omega + earth.W);
-            double M = (double)earth.M;
+            double II = (double)(earth.omega * degs + earth.w * degs);
+            double M = (double)earth.m *degs;
             var t = new TimeSpan(0, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second, DateTime.Now.Millisecond);
             var tz = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now);
             double merSt = (M + II + 15 * ((double)(t.TotalHours - tz.TotalHours))) % 360;
-            double st = (merSt + (longitude)) % 360;
+            double st = (merSt + (longitude * degs)) % 360;
             logger.log(Logger.Level.DEBUG, "Found Sidereal Time at:" + st);
             return st;
         }
 
-        private RaDec geo2RaDec(double[] geo)
+        private static RaDec geo2RaDec(vector3D geo)
         {
-            var delta = Math.Sqrt(Math.Pow(geo[0], 2) + Math.Pow(geo[1], 2) + Math.Pow(geo[2], 2));
-            systemObject.Distance = delta;
-            var lambda = Math.Atan2(geo[1] * rads, geo[0] * rads);
-            var beta = Math.Asin(((geo[2]) / (delta)) * rads);
-            var epsilon = 23.4397;
-            var dec = Math.Asin((Math.Sin(beta) * Math.Cos(epsilon * rads)) + (Math.Cos(beta) * Math.Sin(epsilon * rads) * Math.Sin(lambda))) * degs;
-            var ra = Math.Atan2((Math.Sin(lambda) * Math.Cos(epsilon * rads)) - (Math.Tan(beta) * Math.Sin(epsilon * rads)), Math.Cos(lambda)) * degs;
-            logger.log(Logger.Level.DEBUG, "Found RA & DEC: " + ra + "  " + dec);
-            var temp = new RaDec { Ra = ra, Dec = dec };
-            return temp;
+            var delta = Sqrt(geo.x * geo.x + geo.y * geo.y + geo.z * geo.z);
+            var lambda = Atan2(geo.y * rads, geo.x * rads);
+            var beta = Asin(((geo.z) / (delta)) * rads);
+            const double epsilon = 23.4397 * rads;
+            var dec = Asin((Sin(beta) * Cos(epsilon)) + (Cos(beta) * Sin(epsilon) * Sin(lambda)));
+            var ra = Atan2((Sin(lambda) * Cos(epsilon)) - (Tan(beta) * Sin(epsilon)), Cos(lambda));
+            logger.log(Logger.Level.DEBUG, "Found RA & DEC: " + ra * degs + "  " + dec * degs);
+            return new RaDec { Ra = ra, Dec = dec, Distance = delta };
         }
 
-        private cartesianCoords cartPlaneCalc(kaplarianElements elements)
+        private static vector3D cartPlaneCalc(kaplarianElements elements)
         {
-
-            var E = elements.m;
+            var m = elements.m;
 
             for (int i = 0; i < 400; i++)
             {
-                E = E - ((E - elements.e * Math.Sin(E) - elements.m) / (1 - elements.e * Math.Cos(E)));
+                m = m - ((m - elements.e * Sin(m) - m) / (1 - elements.e * Cos(m)));
             }
 
-
             //Calculate radius vector
-            var radius = elements.a * ((1 - Math.Pow(elements.e, 2)) / (1 + elements.e * Math.Cos(elements.nu * rads)));
+            var radius = elements.a * ((1 - (elements.e * elements.e)) / (1 + elements.e * Cos(elements.nu)));
 
+            var x = radius * (Cos(elements.omega ) * Cos((elements.w + elements.nu) ) - Sin(elements.omega ) * Cos(elements.i ) * Sin((elements.w + elements.nu) ));
+            var y = radius * (Sin(elements.omega ) * Cos((elements.w + elements.nu) ) + Cos(elements.omega ) * Cos(elements.i ) * Sin((elements.w + elements.nu) ));
+            var z = radius * Sin(elements.i ) * Sin((elements.w + elements.nu) );
 
-            var x = radius * (Math.Cos(elements.omega * rads) * Math.Cos((elements.w + elements.nu) * rads) - Math.Sin(elements.omega * rads) * Math.Cos(elements.i * rads) * Math.Sin((elements.w + elements.nu) * rads));
-            var y = radius * (Math.Sin(elements.omega * rads) * Math.Cos((elements.w + elements.nu) * rads) + Math.Cos(elements.omega * rads) * Math.Cos(elements.i * rads) * Math.Sin((elements.w + elements.nu) * rads));
-            var z = radius * Math.Sin(elements.i * rads) * Math.Sin((elements.w + elements.nu) * rads);
+            logger.log(Logger.Level.DEBUG, "Found Cartesian coordinates X:" + x + ", Y:" + y + ", Z:" + z);
 
-            cartesianCoords temp = new cartesianCoords { x = x, y = y, z = z };
-
-            logger.log(Logger.Level.DEBUG, "Found cartesian coordiantes X:" + x + ", Y:" + y + ", Z:" + z);
-
-            return temp;
+            return new vector3D { x = x, y = y, z = z };
         }
     }
-
-
 }

@@ -27,16 +27,7 @@ namespace ControlProgram
             Map(member => member.A).Ignore();
             Map(member => member.AD).Ignore();
             Map(member => member.PR).Ignore();
-            Map(member => member.Distance).Ignore();
-            Map(member => member.Az).Ignore();
-            Map(member => member.El).Ignore();
-            Map(member => member.Ra).Ignore();
-            Map(member => member.Dec).Ignore();
-            Map(member => member.HourAngle).Ignore();
-            Map(member => member.LST).Ignore();
-            Map(member => member.CartX).Ignore();
-            Map(member => member.CartY).Ignore();
-            Map(member => member.CartZ).Ignore();
+            Map(member => member.Calculations).Ignore();
         }
     }
     class StarDatabase
@@ -73,7 +64,7 @@ namespace ControlProgram
         public int search(string name)
         {
             logger.log(Logger.Level.INFO, "Searching for " + name);
-            int loc = data.FindIndex(x => (x.Name.ToUpper() == name.ToUpper() && x.Date >= DateTime.UtcNow.Subtract(TimeSpan.FromHours(100))));
+            int loc = data.FindIndex(x => (x.Name.ToUpper() == name.ToUpper() && x.Date >= DateTime.UtcNow));
             if(loc < 0)
                 logger.log(Logger.Level.INFO, "Could not find " + name);
             else
