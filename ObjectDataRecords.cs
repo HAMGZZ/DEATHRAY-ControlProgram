@@ -10,6 +10,21 @@ using CsvHelper.Configuration.Attributes;
 
 namespace ControlProgram
 {
+
+    public struct ObjectDataCalculations
+    {
+        public double Distance { get; set; }
+        public double Ra { get; set; }
+        public double Dec { get; set; }
+        public double Az { get; set; }
+        public double El { get; set; }
+        public double HourAngle { get; set; }
+        public double LST { get; set; }
+        public double CartX { get; set; }
+        public double CartY { get; set; }
+        public double CartZ { get; set; }
+    }
+
     public class ObjectDataRecords
     {
         // CSV: JDTDB,Calendar Date (TDB),EC,QR,IN,OM,W,Tp,N,MA,TA,A,AD,PR,,name
@@ -87,16 +102,9 @@ namespace ControlProgram
         public decimal AD { get => aD; set { } }
         public decimal PR { get => pR; set { } }
 
-        public double Distance { get; set; }
-        public double Ra { get; set; }
-        public double Dec { get; set; }
-        public double Az { get; set; }
-        public double El { get; set; }
-        public double HourAngle { get; set; }
-        public double LST { get; set; }
-        public double CartX { get; set; }
-        public double CartY { get; set; }
-        public double CartZ { get; set; }
+        public ObjectDataCalculations Calculations;
+
+
 
         private PropertyInfo[] _PropertyInfos = null;
 

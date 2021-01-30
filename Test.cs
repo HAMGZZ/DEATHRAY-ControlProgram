@@ -41,9 +41,9 @@ namespace ControlProgram
                             currentObject = null;
                             break;
                         }
-                        var orbitcalc = new OrbitCalculator(db.data[db.search("EARTH")], 151, -33);
-                        orbitcalc.DirectionFinder(currentObject);
+                        currentObject.Calculations = OrbitCalculator.DirectionFinder(currentObject, db.data[db.search("EARTH")], 151, -33);
                         Console.WriteLine(currentObject.ToString());
+                        Console.WriteLine("AZ EL >> ", +currentObject.Calculations.Az + " " + currentObject.Calculations.El);
                         break;
                     case "remote simple":
                         Remote remoteTemp = new Remote();

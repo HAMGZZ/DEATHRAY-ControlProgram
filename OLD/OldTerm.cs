@@ -15,12 +15,14 @@ namespace ControlProgram
         private ObjectDataRecords earth;
         private Remote remote;
         //WINDOWS
-        private Window w_data;
-        private Window w_objectData;
-        private Window w_vision;
-        private Window w_prompt;
+        private DisplayObjects w_data;
+        private DisplayObjects w_objectData;
+        private DisplayObjects w_vision;
+        private DisplayObjects w_prompt;
 
         private List<char> toPrintBuffer = new List<char>();
+
+        private OrbitCalculator calc;
 
         public Term(StarDatabase database, Remote remote)
         {
@@ -37,6 +39,7 @@ namespace ControlProgram
             loadingScreen();
             database.load(this);
             var earthLoc = database.search("EARTH");
+            calc = new OrbitCalculator(database.data[earthLoc], 151, -33);
         }
 
         public struct CursorAddress
@@ -67,14 +70,7 @@ namespace ControlProgram
         {
             VT4100.EndComms();
         }
-        public void SetCursorAddress(CursorAddress address)
-        {
-            var prevEcho = echoTypedEnable;
-            echoTypedEnable = false;
-            logger.log(Logger.Level.DEBUG, "Moving cursor to : " + address.x + " " + address.y);
-            VT4100.SendBytes(address.ToSend(), 4);
-            echoTypedEnable = prevEcho;
-        }
+        
         public CursorAddress GetCursorAddress()
         {
             var prevEcho = echoTypedEnable;
@@ -147,10 +143,10 @@ namespace ControlProgram
             echoTypedEnable = false;
             logger.log(Logger.Level.INFO, "Drawing screen...");
             VT4100.Send(clear);
-            w_data = new Window(0, 1, 10, 30, "Data", this);
-            w_objectData = new Window(w_data.Left, 1, w_data.Height, 80 - w_data.Width + 1, "Object Data", this);
-            w_vision = new Window(0, w_data.Bottom, 11, 80, "Vision", this);
-            w_prompt = new Window(0, 20, 3, 80, "Prompt", this);
+            w_data = new DisplayObjects(0, 1, 10, 30, "Data", this);
+            w_objectData = new DisplayObjects(w_data.Left, 1, w_data.Height, 80 - w_data.Width + 1, "Object Data", this);
+            w_vision = new DisplayObjects(0, w_data.Bottom, 11, 80, "Vision", this);
+            w_prompt = new DisplayObjects(0, 20, 3, 80, "Prompt", this);
             w_data.text("Current AZ:", 0, 0);
             w_data.text("Current EL:", 0, 1);
             w_data.text("Desired AZ:", 0, 2);
@@ -179,9 +175,9 @@ namespace ControlProgram
         }
 
         public void update()
-        {
+        { 
             if (currentObject != null)
-                currentObject.Calculations = OrbitCalculator.DirectionFinder(currentObject, earth, 151, -33);
+                calc.DirectionFinder(currentObject);
             echoTypedEnable = false;
             logger.log(Logger.Level.DEBUG, "Updating screen");
             SetCursorAddress(new CursorAddress { x = 0, y = 0 });
@@ -190,13 +186,13 @@ namespace ControlProgram
             if (currentObject != null)
             {
                 w_objectData.text(currentObject.Name.PadRight(20, ' '), 11, 0);
-                w_objectData.text(currentObject.Calculations.Distance.ToString().PadRight(20, ' '), 11, 1);
-                w_objectData.text((currentObject.Calculations.Ra.ToString("0.##") + "/" + currentObject.Calculations.Dec.ToString("0.##")).PadRight(20, ' '), 11, 2);
-                w_objectData.text((currentObject.Calculations.CartX.ToString("0.##") + ", " + currentObject.Calculations.CartY.ToString("0.##") + ", " + currentObject.Calculations.CartZ.ToString("0.##")).PadRight(20, ' '), 11, 3);
-                w_objectData.text((currentObject.Calculations.Az.ToString("0.##").PadRight(20, ' ')), 11, 4);
-                w_objectData.text((currentObject.Calculations.El.ToString("0.##").PadRight(20, ' ')), 11, 5);
-                w_objectData.text(currentObject.Calculations.LST.ToString("0.##").PadRight(8, ' '), 40, 0);
-                w_objectData.text(currentObject.Calculations.HourAngle.ToString("0.##").PadRight(8, ' '), 40, 1);
+                w_objectData.text(currentObject.Distance.ToString().PadRight(20, ' '), 11, 1);
+                w_objectData.text((currentObject.Ra.ToString("0.##") + "/" + currentObject.Dec.ToString("0.##")).PadRight(20, ' '), 11, 2);
+                w_objectData.text((currentObject.CartX.ToString("0.##") + ", " + currentObject.CartY.ToString("0.##") + ", " + currentObject.CartZ.ToString("0.##")).PadRight(20, ' '), 11, 3);
+                w_objectData.text((currentObject.Az.ToString("0.##").PadRight(20, ' ')), 11, 4);
+                w_objectData.text((currentObject.El.ToString("0.##").PadRight(20, ' ')), 11, 5);
+                w_objectData.text(currentObject.LST.ToString("0.##").PadRight(8, ' '), 40, 0);
+                w_objectData.text(currentObject.HourAngle.ToString("0.##").PadRight(8, ' '), 40, 1);
             }
             if (remote.data.connect)
             {
@@ -226,15 +222,15 @@ namespace ControlProgram
             {
                 var loc = database.search(planets[i].ToUpper());
                 planetData[i] = database.data[loc];
-                planetData[i].Calculations = OrbitCalculator.DirectionFinder(planetData[i], earth, 151, -33);
+                calc.DirectionFinder(planetData[i]);
             }
 
             for (int i = 0; i < planets.Length - 1; i++)
             {
-                if(planetData[i].Calculations.El > 0)
+                if(planetData[i].El > 0)
                 {
-                    var x = ExtensionMethods.Map(planetData[i].Calculations.Az, 0, 360, 0, 77);
-                    var y = ExtensionMethods.Map(planetData[i].Calculations.El, 0, 90, 0, 7);
+                    var x = ExtensionMethods.Map(planetData[i].Az, 0, 360, 0, 77);
+                    var y = ExtensionMethods.Map(planetData[i].El, 0, 90, 0, 7);
                     w_vision.text((i + 1).ToString(), (byte)x, (byte)(7 - y));
                 }
             }
@@ -322,7 +318,7 @@ namespace ControlProgram
                         else
                         {
                             currentObject = database.data[loc];
-                            currentObject.Calculations = OrbitCalculator.DirectionFinder(currentObject, earth, 151, -33);
+                            calc.DirectionFinder(currentObject);
                         }
                     }
 
