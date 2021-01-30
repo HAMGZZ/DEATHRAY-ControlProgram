@@ -100,8 +100,7 @@ namespace ControlProgram
 
         private static vector3D cartPlaneCalc(kaplarianElements elements)
         {
-
-            var E = elements.m;
+            var m = elements.m;
 
             for (int i = 0; i < 400; i++)
             {
